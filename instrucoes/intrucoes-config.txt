@@ -1,0 +1,282 @@
+Instruções de configuração.
+
+-Fazer o fork do projeto do Gian
+
+-Copiar o link do seu repositório forkado do Github
+
+-No PowerShell, ir até a pasta onde o repositório forkado deve ser clonado
+
+-Executar o comando >git clone https://repositorioforkado.git após chegar ao diretório correto (cd \.direrorio-onde-o-projeto clonado ficará)
+
+->cd repositorioforkado
+
+-Executar o comando >npm i para instalar as dependências
+
+-Executar o comando >npm start
+
+-Ao abrir o servidor haverá erros do prettier
+
+-Encerrar o servidor e executar o comando >npx eslint --fix para resolver os erros do prettier
+
+->npm start novamente.
+
+-Só haverá o cabeçalho
+
+-Encerrar o servidor novamente e executar o comando npx json-server db.json --port 4000
+ou npx json-server db.json -p 4000
+para acessar através do json-server, o db fake onde há a listagem dos itens de compra que serão fetched pela aplicação.
+
+-Abrir projeto no VSCode
+
+-----------------------------------------------------------------------------------------------------------------------
+-----------------------------------------------------------------------------------------------------------------------
+-----------------------------------------------------------------------------------------------------------------------
+
+-No PowerShell, executar o comando > npm i --save react-redux @reduxjs/toolkit
+
+-Em src, criar uma nova pasta store
+
+-Dentro da pasta store, criar um index.ts (Root Reducer)
+onde se deve instanciar uma constante chamada store que irá
+receber a função configureStore() onde passaremos os reducers diretamente
+
+import { configureStore } from '@reduxjs/toolkit'
+
+const store = configureStore({
+  reducer: {}
+})
+
+
+-Dentro da pasta store, criar uma pasta chamada reducers e dentro de reducers criar o arquivo
+carrinho.ts (Reducer)
+e instanciar uma constante chamada CarrinhoSlice que irá
+receber a função creatrSlice() passando um objeto com campos como name, initialState, e reducers.
+Respectivamente o nome do objeto, seu estado inicial e os reducers que são funções responsáveis
+por atualizar o estado da aplicação em resposta a uma action.
+
+Recortaremos a função adicionarAoCarrinho() de App.tsx para carrinho.ts e copiarmos a lógica.
+
+import { createSlice, PayloadAction } from '@reduxjs/toolkit'
+
+import { Game } from '../../App'
+
+type CarrinhoState = {
+  itens: Game[]
+}
+
+const initialState: CarrinhoState = {
+  itens: []
+}
+
+const carrinhoSlice = createSlice({
+  name: 'carinho',
+  initialState,
+  reducers: {
+    adicionar: (state, action: PayloadAction<Game>) => {
+      const jogo = action.payload
+
+      if (state.itens.find((game) => game.id === jogo.id)) {
+        alert('Item já adicionado')
+      } else {
+        state.itens.push(jogo)
+      }
+    }
+  }
+})
+
+export const { adicionar } = carrinhoSlice.actions
+export default carrinhoSlice.reducer
+
+(LOGICA DO REDUCER ADICIONAR FOI COPIADA DA FUNÇÃO ABAIXO)
+
+// function adicionarAoCarrinho(jogo: Game) {
+//   if (carrinho.find((game) => game.id === jogo.id)) {
+//     alert('Item já adicionado')
+//   } else {
+//     setCarrinho([...carrinho, jogo])
+//   }
+// }
+
+
+-----------------------------------------------------------------------------------------------------------------------
+-----------------------------------------------------------------------------------------------------------------------
+-----------------------------------------------------------------------------------------------------------------------
+
+-Exportação de tipagem em store/index.ts (RootReducer = ReturnType<typeof store.getState)
+
+import { configureStore } from '@reduxjs/toolkit'
+
+import carrinhoReducer from './reducers/carrinho'
+
+export const store = configureStore({
+  reducer: {
+    carrinho: carrinhoReducer
+  }
+})
+
+export type RootReducer = ReturnType<typeof store.getState>
+
+-----------------------------------------------------------------------------------------------------------------------
+
+-Modificar Header/index.ts
+
+import { useSelector } from 'react-redux'
+
+import * as S from './styles'
+
+// import { Game } from '../../App'
+
+import cesta from '../../assets/cesta.png'
+import { paraReal } from '../Produto'
+
+import { RootReducer } from '../../store'
+
+// type Props = {
+//   itensNoCarrinho: Game[]
+// }
+
+// const Header = ({ itensNoCarrinho }: Props) => {
+const Header = () => {
+  const itens = useSelector((state: RootReducer) => state.carrinho.itens)
+
+  // const valorTotal = itensNoCarrinho.reduce((acc, item) => {
+  const valorTotal = itens.reduce((acc, item) => {
+    acc += item.preco
+    return acc
+  }, 0)
+
+  return (
+    <S.Header>
+      <h1>EBAC Games</h1>
+      <div>
+        <img src={cesta} />
+        <span>
+          {/* {itensNoCarrinho.length} itens, valor total: {paraReal(valorTotal)} */}
+          {itens.length} itens, valor total: {paraReal(valorTotal)}
+        </span>
+      </div>
+    </S.Header>
+  )
+}
+
+export default Header
+
+-----------------------------------------------------------------------------------------------------------------------
+
+-Modificar App.tsx para aceitar reducers(Encapsulando os containers com <Provider store={store}>)
+
+import { useEffect, useState } from 'react'
+import { Provider } from 'react-redux'
+import Header from './components/Header'
+import Produtos from './containers/Produtos'
+
+import { GlobalStyle } from './styles'
+
+import { store } from './store'
+
+export type Game = {
+  id: number
+  titulo: string
+  plataformas: string[]
+  precoAntigo: number
+  preco: number
+  categoria: string
+  imagem: string
+}
+
+function App() {
+  const [games, setGames] = useState<Game[]>([])
+  // const [carrinho, setCarrinho] = useState<Game[]>([]) substituido pelo reducer
+
+  useEffect(() => {
+    fetch('http://localhost:4000/produtos')
+      .then((res) => res.json())
+      .then((res) => setGames(res))
+  }, [])
+
+  function adicionarAoCarrinho() {
+    console.log('teste')
+  }
+
+  return (
+    <Provider store={store}>
+      <GlobalStyle />
+      <div className="container">
+        {/* <Header itensNoCarrinho={carrinho} /> */}
+        <Header />
+        <Produtos jogos={games} adicionarAoCarrinho={adicionarAoCarrinho} />
+      </div>
+    </Provider>
+  )
+}
+
+export default App
+
+-----------------------------------------------------------------------------------------------------------------------
+-----------------------------------------------------------------------------------------------------------------------
+-----------------------------------------------------------------------------------------------------------------------
+
+-Remover a função adicionarAoCarrinho() de App.tsx e de todo componentes que o tem como Props
+-Remover a função aoComprar() de todos os componentes que o tem como props
+
+-Em Produto/index.tsx, instanciar uma constante para alocar a função useDispatch(), segue o código:
+
+import { useDispatch } from 'react-redux'
+
+import { Game } from '../../App'
+import * as S from './styles'
+
+import { adicionar } from '../../store/reducers/carrinho'
+
+type Props = {
+  game: Game
+  // aoComprar: (jogo: Game) => void
+}
+
+export const paraReal = (valor: number) =>
+  new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(
+    valor
+  )
+
+// const Produto = ({ game, aoComprar }: Props) => {
+const Produto = ({ game }: Props) => {
+  const dispatch = useDispatch()
+
+  return (
+    <S.Produto>
+      <S.Capa>
+        <S.Tag>{game.categoria}</S.Tag>
+        <img src={game.imagem} alt={game.titulo} />
+      </S.Capa>
+      <S.Titulo>{game.titulo}</S.Titulo>
+      <S.Plataformas>
+        {game.plataformas.map((plat) => (
+          <li key={plat}>{plat}</li>
+        ))}
+      </S.Plataformas>
+      <S.Prices>
+        {game.precoAntigo && <small>{paraReal(game.precoAntigo)}</small>}
+        <strong>{paraReal(game.preco)}</strong>
+      </S.Prices>
+      {/* <S.BtnComprar onClick={() => aoComprar(game)} type="button"> */}
+      <S.BtnComprar onClick={() => dispatch(adicionar(game))} type="button">
+        Adicionar ao carrinho
+      </S.BtnComprar>
+    </S.Produto>
+  )
+}
+
+export default Produto
+
+
+
+-----------------------------------------------------------------------------------------------------------------------
+-----------------------------------------------------------------------------------------------------------------------
+-----------------------------------------------------------------------------------------------------------------------
+
+React Tool Query
+
+-Criar uma pasta services em src
+
+-Dentro de services, criar o arquivo api.ts
+

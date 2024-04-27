@@ -1,9 +1,18 @@
+//hooks
+import { useDispatch } from 'react-redux'
+
+//action
+import { adicionar } from '../../store/reducers/carrinho'
+
+//components
 import { Produto as ProdutoType } from '../../App'
+
+//style
 import * as S from './styles'
 
 type Props = {
   produto: ProdutoType
-  aoComprar: (produto: ProdutoType) => void
+  // aoComprar: (produto: ProdutoType) => void
   favoritar: (produto: ProdutoType) => void
   estaNosFavoritos: boolean
 }
@@ -15,10 +24,15 @@ export const paraReal = (valor: number) =>
 
 const ProdutoComponent = ({
   produto,
-  aoComprar,
+  // aoComprar,
   favoritar,
   estaNosFavoritos
 }: Props) => {
+  //dispatch receberá como argumento uma ação a ser despachada
+  //no caso, a ação será 'adicionar' que está em
+  //'reducers' do reducer carrinhoSlice em store/reducers/carrinho.ts
+  const dispatch = useDispatch()
+
   return (
     <S.Produto>
       <S.Capa>
@@ -33,7 +47,7 @@ const ProdutoComponent = ({
           ? '- Remover dos favoritos'
           : '+ Adicionar aos favoritos'}
       </S.BtnComprar>
-      <S.BtnComprar onClick={() => aoComprar(produto)} type="button">
+      <S.BtnComprar onClick={() => dispatch(adicionar(produto))} type="button">
         Adicionar ao carrinho
       </S.BtnComprar>
     </S.Produto>
